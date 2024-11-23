@@ -59,6 +59,11 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
+
+    implementation ("androidx.compose.material3:material3:<latest_version>")
+    implementation ("androidx.compose.ui:ui:<latest_version>")
+    implementation ("androidx.compose.foundation:foundation:<latest_version>")
+    implementation ("androidx.compose.material:material:<latest_version>")
     implementation ("androidx.navigation:navigation-compose:2.8.4")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

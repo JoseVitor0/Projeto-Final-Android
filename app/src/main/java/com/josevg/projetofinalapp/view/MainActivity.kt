@@ -1,16 +1,19 @@
 package com.josevg.projetofinalapp.view
 
+import android.graphics.Paint.Align
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,11 +22,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.SnackbarDefaults.backgroundColor
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -34,6 +42,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -50,9 +59,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -100,6 +109,15 @@ fun AppNavigation(carroMotorViewModel: CarroMotorViewModel) {
             composable("login") { TelaLogin(carroMotorViewModel, navController) }
             composable("telaprincipal") { TelaPrincipal(navController, carroMotorViewModel) }
             composable("producao") { TelaProducao(navController = navController, carroMotorViewModel = carroMotorViewModel) }
+            composable("cadastrocarros") { CadastroCarros(
+                carroMotorViewModel = carroMotorViewModel,
+                navController = navController
+            ) }
+            composable("detalhes/{carroId}") { backStackEntry ->
+                val carroId = backStackEntry.arguments?.getString("carroId")?.toInt() ?: 0
+                DetalhesCarros(carroId = carroId, carroMotorViewModel = carroMotorViewModel, navController)
+            }
+
         }
 }
 
@@ -109,7 +127,6 @@ fun TelaPrincipal(navController: NavController, carroMotorViewModel: CarroMotorV
     var selectedTabIndex by remember { mutableStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // TabLayout na parte superior
         TabRow(
             selectedTabIndex = selectedTabIndex,
             modifier = Modifier.fillMaxWidth()
@@ -123,7 +140,6 @@ fun TelaPrincipal(navController: NavController, carroMotorViewModel: CarroMotorV
             }
         }
 
-        // Conteúdo das abas
         when (selectedTabIndex) {
             0 -> CadastroMotores(carroMotorViewModel, navController)
             1 -> CadastroCarros(carroMotorViewModel, navController)
@@ -195,8 +211,7 @@ fun CadastroMotores(carroMotorViewModel: CarroMotorViewModel, navController: Nav
 
 
         Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+            .fillMaxSize(),
             verticalArrangement = Arrangement.Center) {
 
             Text("Cadastro de motores", fontSize = 30.sp, fontWeight = FontWeight.Bold)
@@ -245,12 +260,7 @@ fun CadastroMotores(carroMotorViewModel: CarroMotorViewModel, navController: Nav
                 val retorno = carroMotorViewModel.salvarMotor(modelo, marca, cilindradas, potencia, torque, combustivel)
                 Toast.makeText(context, retorno,Toast.LENGTH_SHORT).show()
 
-                modelo = ""
-                marca = ""
-                potencia = ""
-                torque = ""
-                cilindradas = ""
-                combustivel = ""
+                navController.navigate("telaprincipal")
             },
                 modifier = Modifier.fillMaxWidth()) {
                 Text(text = "Cadastrar Motor")
@@ -266,113 +276,125 @@ fun CadastroMotores(carroMotorViewModel: CarroMotorViewModel, navController: Nav
 }
 
 @Composable
-fun CadastroCarros(carroMotorViewModel: CarroMotorViewModel, navController: NavController){
+fun CadastroCarros(
+    carroMotorViewModel: CarroMotorViewModel,
+    navController: NavController
+) {
+    val carrosEdicao by carroMotorViewModel.listaCarrosEdicao
+    val carroEdicao = carrosEdicao.firstOrNull()
 
-    var marca by remember { mutableStateOf("") }
-    var modelo by remember { mutableStateOf("") }
-    var ano by remember { mutableStateOf("") }
-    var numPortas by remember { mutableStateOf("") }
-    var cor by remember { mutableStateOf("") }
-    var motor by remember { mutableStateOf("") }
-
+    var marca by remember { mutableStateOf(carroEdicao?.marca ?: "") }
+    var modelo by remember { mutableStateOf(carroEdicao?.modelo ?: "") }
+    var ano by remember { mutableStateOf(carroEdicao?.ano?.toString() ?: "") }
+    var numPortas by remember { mutableStateOf(carroEdicao?.numPortas?.toString() ?: "") }
+    var cor by remember { mutableStateOf(carroEdicao?.cor ?: "") }
+    var motor by remember { mutableStateOf(carroEdicao?.motor ?: "") }
 
     var motoresDisponives by remember { mutableStateOf(false) }
 
-    var textoBotao by remember { mutableStateOf("Salvar") }
-    var modoEditar by remember { mutableStateOf(false) }
-
-    var listaCarros by carroMotorViewModel.listaCarros
     val selectedOptions = remember { mutableStateListOf<String>() }
-
 
     val context = LocalContext.current
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
-        .verticalScroll(rememberScrollState()),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center
-        ) {
+    ) {
 
+        Text(text =  if (carroEdicao == null) "Cadastrar Carros" else "Editar Carro", fontSize = 30.sp, fontWeight = FontWeight.Bold)
 
-            Text(text = "Cadastrar Carros", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Marca:")
+        Spacer(Modifier.height(5.dp))
+        marca = selectionBox(
+            listaOpcoes = carroMotorViewModel.listaMarcas,
+            initialSelection = marca
+        ) { selectedMarca -> marca = selectedMarca }
 
-            Text(text = "Marca:")
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (marca.isNotBlank()) {
+            Text(text = "Modelo:")
             Spacer(Modifier.height(5.dp))
-            marca = selectionBox(listaOpcoes = carroMotorViewModel.listaMarcas)
+            modelo = carroMotorViewModel.listaModelos[marca]?.let {
+                selectionBox(
+                    listaOpcoes = it,
+                    initialSelection = modelo
+                ) { selectedModelo -> modelo = selectedModelo }
+            } ?: ""
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if(marca.isNotBlank()){
-                Text(text = "Modelo:")
-                Spacer(Modifier.height(5.dp))
-                modelo =
-                    carroMotorViewModel.listaModelos[marca]?.let { selectionBox(listaOpcoes = it) }.toString()
-
-                if (modelo.isNotBlank()){
-                    val imagemRes = carroMotorViewModel.mapDeImagens[modelo] ?: R.drawable.placeholder
-                    Image(
-                        painter = painterResource(id = imagemRes),
-                        contentDescription = "car",
-                        modifier = Modifier
-                            .size(200.dp)
-                            .fillMaxWidth()
-                    )
-                }
-
+            if (modelo.isNotBlank()) {
+                val imagemRes = carroMotorViewModel.mapDeImagens[modelo] ?: R.drawable.placeholder
+                Image(
+                    painter = painterResource(id = imagemRes),
+                    contentDescription = "car",
+                    modifier = Modifier
+                        .size(200.dp)
+                        .fillMaxWidth()
+                )
             }
+        }
 
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        TextField(
+            value = ano,
+            onValueChange = { ano = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            label = { Text(text = "Ano") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            TextField(value = ano, onValueChange = {ano = it},
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                label = {Text(text = "Ano")},
-                modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Cor:")
+        Spacer(Modifier.height(5.dp))
+        cor = selectionBox(
+            listaOpcoes = carroMotorViewModel.listaCores,
+            initialSelection = cor
+        ) { selectedCor -> cor = selectedCor }
 
-            Text(text = "Cor:")
-            Spacer(Modifier.height(5.dp))
-            cor = selectionBox(listaOpcoes = carroMotorViewModel.listaCores)
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Número de portas:")
+        Spacer(Modifier.height(5.dp))
+        numPortas = selectionBox(
+            listaOpcoes = carroMotorViewModel.listaPortas,
+            initialSelection = numPortas
+        ) { selectedNumPortas -> numPortas = selectedNumPortas }
 
-            Text(text = "Número de portas:")
-            Spacer(Modifier.height(5.dp))
-            numPortas = selectionBox(listaOpcoes = carroMotorViewModel.listaPortas)
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Motor:")
+        Spacer(Modifier.height(5.dp))
+        val listaMotores by carroMotorViewModel.motoresDisponiveis.collectAsState()
+        if (listaMotores.isNotEmpty()) {
+            motor = selectionBox(
+                listaOpcoes = listaMotores,
+                initialSelection = motor
+            ) { selectedMotor -> motor = selectedMotor }
+            motoresDisponives = true
+        } else {
+            Text(text = "Não existem motores disponíveis! Não é possível produzir um carro no momento!")
+        }
 
-
-            val listaMotores by carroMotorViewModel.motoresDisponiveis.collectAsState()
-            if (listaMotores.isNotEmpty()){
-                motor = selectionBox(listaOpcoes = listaMotores)
-                motoresDisponives = true
-            } else {
-                Text(text = "Não existem motores disponíveis! Não é possível produzir um carro no momento!")
-            }
-
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+        Spacer(modifier = Modifier.height(16.dp))
 
         var checked by remember { mutableStateOf(false) }
 
-        Text(text = "Deseja acresentar opcionais ao veículo?")
+        Text(text = "Deseja acrescentar opcionais ao veículo?")
         Switch(
             checked = checked,
-            onCheckedChange = {
-                checked = it
-            }
+            onCheckedChange = { checked = it }
         )
 
-
-        if(checked){
+        if (checked) {
             val options = listOf("Teto Solar", "Bancos de couro", "Cor exclusiva", "Piloto automático", "Sistema de manutenção em faixa")
-            var checkedStates = remember { mutableStateListOf(false, false, false, false, false) }
+            val checkedStates = remember { mutableStateListOf(false, false, false, false, false) }
             var checkCount by remember { mutableIntStateOf(0) }
 
             Column {
@@ -385,14 +407,12 @@ fun CadastroCarros(carroMotorViewModel: CarroMotorViewModel, navController: NavC
                             checked = checkedStates[index],
                             onCheckedChange = { isChecked ->
                                 if (isChecked && checkCount >= 3) {
-                                    // Limite atingido, não permite marcar mais
                                     Toast.makeText(
                                         context,
                                         "Quantidade máxima de opções selecionadas!",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 } else {
-                                    // Atualiza estado e conta de selecionados
                                     checkedStates[index] = isChecked
                                     checkCount += if (isChecked) 1 else -1
                                 }
@@ -413,31 +433,44 @@ fun CadastroCarros(carroMotorViewModel: CarroMotorViewModel, navController: NavC
             }
         }
 
-            Button(onClick = {
-                val retorno = carroMotorViewModel.salvarCarro(marca, modelo, ano, cor, motor, numPortas, selectedOptions)
-                Toast.makeText(context, retorno,Toast.LENGTH_SHORT).show()
+        Button(
+            onClick = {
+                if (carroEdicao != null) {
+                    val resultado = carroMotorViewModel.atualizarCarro(
+                        id = carroEdicao.id,
+                        marca = marca,
+                        modelo = modelo,
+                        ano = ano,
+                        cor = cor,
+                        numPortas = numPortas,
+                        motor = motor,
+                        opcionais = selectedOptions
+                    )
+                    Toast.makeText(context, resultado, Toast.LENGTH_SHORT).show()
+                } else {
+                    val resultado = carroMotorViewModel.salvarCarro(marca, modelo, ano, cor, motor, numPortas, selectedOptions)
+                    Toast.makeText(context, resultado, Toast.LENGTH_SHORT).show()
+                }
 
-                marca = ""
-                modelo = ""
-                ano = ""
-                cor = ""
-                motor = ""
-                numPortas = ""
 
-
-            }, modifier = Modifier.fillMaxWidth(), enabled = motoresDisponives) {
-                Text(text = "Cadastrar Carro")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = { navController.navigate("producao") }, modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Produção")
-            }
-
+                navController.navigate("telaprincipal")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = motoresDisponives
+        ) {
+            Text(text = if (carroEdicao == null) "Cadastrar Carro" else "Editar Carro")
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = { navController.navigate("producao") }, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "Produção")
+        }
+    }
 }
+
+
+
 
 
 @Composable
@@ -446,7 +479,6 @@ fun TelaProducao(navController: NavController, carroMotorViewModel: CarroMotorVi
     var selectedTabIndex by remember { mutableStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // TabLayout na parte superior
         TabRow(
             selectedTabIndex = selectedTabIndex,
             modifier = Modifier.fillMaxWidth()
@@ -460,16 +492,15 @@ fun TelaProducao(navController: NavController, carroMotorViewModel: CarroMotorVi
             }
         }
 
-        // Conteúdo das abas
         when (selectedTabIndex) {
-            0 -> TelaEmProducao(carroMotorViewModel)
-            1 -> TelaConcluidos(carroMotorViewModel)
+            0 -> TelaEmProducao(carroMotorViewModel, navController)
+            1 -> TelaConcluidos(carroMotorViewModel, navController)
         }
     }
 }
 
 @Composable
-fun TelaEmProducao(carroMotorViewModel: CarroMotorViewModel){
+fun TelaEmProducao(carroMotorViewModel: CarroMotorViewModel, navController: NavController){
 
     var listaCarros by carroMotorViewModel.listaCarrosProducao
 
@@ -484,20 +515,25 @@ fun TelaEmProducao(carroMotorViewModel: CarroMotorViewModel){
         } else {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(listaCarros) { carro ->
-                    CarroItem(carro = carro, carroMotorViewModel)
-
+                    CarroItem(carro = carro, carroMotorViewModel, navController = navController)
 
                 }
             }
         }
 
+        Box (modifier = Modifier.fillMaxSize()){
+            FloatingActionButton(onClick = { navController.navigate("cadastrocarros") }, modifier = Modifier.align(Alignment.BottomEnd)) {
+                Icon(Icons.Filled.Add, "Floating action button.")
+            }
+        }
 
 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarroItem(carro: Carro, carroMotorViewModel: CarroMotorViewModel) {
+fun CarroItem(carro: Carro, carroMotorViewModel: CarroMotorViewModel, navController: NavController) {
     var currentProgress by remember { mutableStateOf(0f) }
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
@@ -513,7 +549,8 @@ fun CarroItem(carro: Carro, carroMotorViewModel: CarroMotorViewModel) {
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.LightGray),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { navController.navigate("detalhes/${carro.id}") }
         ) {
             Box(Modifier.padding(8.dp)) {
                 Column(Modifier.fillMaxWidth()) {
@@ -540,6 +577,34 @@ fun CarroItem(carro: Carro, carroMotorViewModel: CarroMotorViewModel) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (carro.status == "Em produção") {
+
+                        if (!loading){
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                FloatingActionButton(
+                                    onClick = {
+                                        carroMotorViewModel.atualizarStatus(carro, "Editar")
+                                        navController.navigate("cadastrocarros")
+                                    },
+                                    modifier = Modifier.align(Alignment.BottomStart)
+                                ) {
+                                    Icon(Icons.Filled.Edit, "Floating action button.")
+                                }
+
+
+                                FloatingActionButton(
+                                    onClick = {
+                                        val retorno = carroMotorViewModel.excluirCarro(carro)
+
+                                        Toast.makeText(context, retorno, Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.align(Alignment.BottomEnd)
+                                ) {
+                                    Icon(Icons.Filled.Delete, "Floating action button.")
+                                }
+                            }
+                        }
+
+
                         Button(
                             onClick = {
                                 loading = true
@@ -548,7 +613,7 @@ fun CarroItem(carro: Carro, carroMotorViewModel: CarroMotorViewModel) {
                                         currentProgress = progress
                                     }
                                     loading = false
-                                    carroMotorViewModel.atualizarStatus(carro)
+                                    carroMotorViewModel.atualizarStatus(carro, "Concluído")
                                     Toast.makeText(
                                         context,
                                         "Carro ${carro.marca} ${carro.modelo} produzido com sucesso!",
@@ -586,7 +651,7 @@ suspend fun loadProgress(updateProgress: (Float) -> Unit) {
 
 
 @Composable
-fun TelaConcluidos(carroMotorViewModel: CarroMotorViewModel){
+fun TelaConcluidos(carroMotorViewModel: CarroMotorViewModel, navController: NavController){
 
     var listaCarros by carroMotorViewModel.listaCarrosConcluidos
 
@@ -601,7 +666,7 @@ fun TelaConcluidos(carroMotorViewModel: CarroMotorViewModel){
         } else {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(listaCarros) { carro ->
-                    CarroItem(carro = carro, carroMotorViewModel)
+                    CarroItem(carro = carro, carroMotorViewModel, navController)
                 }
             }
         }
@@ -610,13 +675,83 @@ fun TelaConcluidos(carroMotorViewModel: CarroMotorViewModel){
 }
 
 @Composable
+fun DetalhesCarros(carroId: Int, carroMotorViewModel: CarroMotorViewModel, navController: NavController) {
+    val carro = carroMotorViewModel.buscarCarroPorId(carroId)
+    val imagemRes = carroMotorViewModel.mapDeImagens[carro?.modelo] ?: R.drawable.placeholder
+    val motor = carro?.let { carroMotorViewModel.buscarMotor(it.motor) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+
+        Text(text = "${carro?.marca} ${carro?.modelo} ${carro?.ano}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        Spacer(Modifier.height(8.dp))
+
+        Image(
+            painter = painterResource(id = imagemRes),
+            contentDescription = "Carro",
+            modifier = Modifier
+                .size(300.dp)
+                .fillMaxWidth()
+        )
+
+        Text(
+            text = "Marca: ${carro?.marca}",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+        )
+        Text(
+            text = "Modelo: ${carro?.modelo}",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+        )
+        Text(text = "Ano: ${carro?.ano}")
+        Text(text = "Cor: ${carro?.cor}")
+        Text(text = "Número de portas: ${carro?.numPortas}")
+
+        val listaOpcionais = listOf(carro?.opcional1, carro?.opcional2, carro?.opcional3)
+        for (opcional in listaOpcionais) {
+            if (opcional != "Nenhum") {
+                Text(text = "Opcionais: $opcional", style = MaterialTheme.typography.bodyMedium)
+                }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Motor:", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+        Text(text = "Modelo: ${motor?.modelo}")
+        Text(text = "Marca: ${motor?.marca}")
+        Text(text = "Cilindradas: ${motor?.cilindradas} L")
+        Text(text = "Potência: ${motor?.potencia} cv")
+        Text(text = "Torque: ${motor?.torque} Kgfm")
+        Text(text = "Combustível: ${motor?.combustivel}")
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Text("Voltar", style = MaterialTheme.typography.labelMedium)
+            }
+    }
+}
+
+
+@Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun selectionBox(
-    listaOpcoes: List<String>
-) : String{
+    listaOpcoes: List<String>,
+    initialSelection: String = "",
+    onValueChange: (String) -> Unit = {}
+): String {
     var expanded by remember { mutableStateOf(false) }
-    var selectedOption by remember { mutableStateOf("") }
-
+    var selectedOption by remember { mutableStateOf(initialSelection) }  // Usando initialSelection aqui
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -625,19 +760,20 @@ private fun selectionBox(
         // Campo de seleção (TextField)
         TextField(
             value = selectedOption,
-            onValueChange = { selectedOption = it },
+            onValueChange = { newValue ->
+                selectedOption = newValue
+            },
             label = { Text("Selecione uma opção") },
             modifier = Modifier
-                .menuAnchor() // Faz com que o menu se alinhe ao TextField
+                .menuAnchor()
                 .fillMaxWidth(),
-            readOnly = true, // Deixa o campo apenas para seleção, sem edição direta pelo usuário
+            readOnly = true,
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             colors = ExposedDropdownMenuDefaults.textFieldColors()
         )
 
-        // Menu suspenso com as opções da lista
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
@@ -647,6 +783,7 @@ private fun selectionBox(
                     text = { Text(option) },
                     onClick = {
                         selectedOption = option
+                        onValueChange(option)
                         expanded = false
                     }
                 )
@@ -655,10 +792,4 @@ private fun selectionBox(
     }
 
     return selectedOption
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LayoutPreview() {
-
 }

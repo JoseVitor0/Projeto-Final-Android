@@ -24,6 +24,9 @@ class CarroMotorViewModel(private val carroDao: CarroDao, private val motorDao: 
     var listaCarrosConcluidos = mutableStateOf(listOf<Carro>())
         private set
 
+    var listaCarrosEdicao = mutableStateOf(listOf<Carro>())
+        private set
+
     var listaMotores = mutableStateOf(listOf<Motor>())
         private set
 
@@ -90,6 +93,7 @@ class CarroMotorViewModel(private val carroDao: CarroDao, private val motorDao: 
         carregarMotores()
         carregarCarrosProducao()
         carregarCarrosConcluidos()
+        carregarCarrosEdicao()
     }
 
     private val user = "master"
@@ -115,15 +119,19 @@ class CarroMotorViewModel(private val carroDao: CarroDao, private val motorDao: 
         }
     }
 
+    private fun carregarCarrosEdicao(){
+        viewModelScope.launch{
+            listaCarrosEdicao.value = carroDao.carrosEdicao()
+        }
+    }
+
     private fun carregarMotores(){
         viewModelScope.launch {
             val motores = motorDao.buscarTodos()
 
-            // Atualize a lista de motores completa
             listaMotores.value = motores
 
-            // Atualize a lista de motores disponíveis, ou seja, apenas os modelos
-            _motoresDisponiveis.value = motores.map { it.modelo }
+            _motoresDisponiveis.value = motores.map { "${it.marca} ${it.modelo}"}
         }
     }
 
@@ -147,14 +155,14 @@ class CarroMotorViewModel(private val carroDao: CarroDao, private val motorDao: 
 
         val opcionaisFormatados = (opcionais + List(3 - opcionais.size) { "Nenhum" }).take(3)
 
-        // Atribui os valores para os campos específicos no banco
         val opcional1 = opcionaisFormatados[0]
         val opcional2 = opcionaisFormatados[1]
         val opcional3 = opcionaisFormatados[2]
 
+        val motorModelo = motor.substringAfterLast(" ").trim()
 
         val carro = Carro(marca = marca, modelo =  modelo, ano =  ano.toInt(), cor = cor,
-            numPortas =  numPortas.toInt(), motor =  motor, status =  "Em produção",
+            numPortas =  numPortas.toInt(), motor =  motorModelo, status =  "Em produção",
             opcional1 = opcional1, opcional2 = opcional2, opcional3 = opcional3)
 
         viewModelScope.launch {
@@ -166,25 +174,36 @@ class CarroMotorViewModel(private val carroDao: CarroDao, private val motorDao: 
         return "Carro $marca $modelo foi salvo com sucesso!"
     }
 
-    fun excluirCarro(carro: Carro){
+    fun excluirCarro(carro: Carro) : String{
         viewModelScope.launch {
             carroDao.deletarCarro(carro)
             carregarCarros()
+            carregarCarrosProducao()
         }
+        return "Carro Excluido com sucesso!"
     }
 
-    fun atualizarCarro(id: Int, marca: String, modelo: String, ano: String, cor: String, numPortas: String, motor: String) : String{
+    fun atualizarCarro(id: Int, marca: String, modelo: String, ano: String, cor: String, numPortas: String, motor: String, opcionais: List<String>) : String{
         if (marca.isBlank() || modelo.isBlank()){
             return "Preencha todos os campos"
         }
 
+        val opcionaisFormatados = (opcionais + List(3 - opcionais.size) { "Nenhum" }).take(3)
+
+        val opcional1 = opcionaisFormatados[0]
+        val opcional2 = opcionaisFormatados[1]
+        val opcional3 = opcionaisFormatados[2]
+
         val status = "Em produção"
         val carro = listaCarros.value.find { it.id == id } ?: return "Erro ao atualizar o carro"
-        val carroAtualizado = carro.copy(marca = marca, modelo = modelo, ano = ano.toInt(), cor = cor, numPortas = numPortas.toInt(), motor = motor, status = status)
+        val carroAtualizado = carro.copy(marca = marca, modelo = modelo, ano = ano.toInt(),
+            cor = cor, numPortas = numPortas.toInt(), motor = motor, status = status,
+            opcional1 = opcional1, opcional2 = opcional2, opcional3 = opcional3)
 
         viewModelScope.launch {
             carroDao.atualizarCarro(carroAtualizado)
             carregarCarros()
+            carregarCarrosProducao()
         }
 
         return "Carro atualizado!"
@@ -208,18 +227,26 @@ class CarroMotorViewModel(private val carroDao: CarroDao, private val motorDao: 
 
     }
 
-    fun atualizarStatus(carro: Carro){
+    fun atualizarStatus(carro: Carro, status: String){
         viewModelScope.launch {
-            carroDao.atualizarStatus(carro.id)
+            carroDao.atualizarStatus(carro.id, status)
+            carregarCarros()
             carregarCarrosProducao()
             carregarCarrosConcluidos()
+            carregarCarrosEdicao()
         }
     }
 
-    fun carregarMotoresDisponiveis() {
-        viewModelScope.launch {
-            val motores = motorDao.buscarMotoresDisponiveis() // Chamada ao banco
-            _motoresDisponiveis.value = motores
-        }
+    fun buscarMotor(modelo: String): Motor? {
+
+        return listaMotores.value.find { it.modelo == modelo }
     }
+
+    fun buscarCarroPorId(id: Int): Carro?{
+
+        return listaCarros.value.find { it.id == id }
+
+    }
+
+
 }

@@ -25,4 +25,6 @@ interface MotorDao {
     @Delete
     suspend fun deletarMotor(motor: Motor)
 
+    @Query("SELECT * FROM motores WHERE modelo = :modelo")
+    suspend fun buscarMotor(modelo: String): Motor
 }

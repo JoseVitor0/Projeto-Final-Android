@@ -26,10 +26,13 @@ interface CarroDao {
     @Query("SELECT * FROM carros WHERE status = 'Em produção'")
     suspend fun buscarProducao() : List<Carro>
 
-    @Query("UPDATE carros SET status = 'Concluído' WHERE id = :carroId")
-    suspend fun atualizarStatus(carroId: Int): Int
+    @Query("UPDATE carros SET status = :status WHERE id = :carroId")
+    suspend fun atualizarStatus(carroId: Int, status: String): Int
 
     @Query("SELECT * FROM carros WHERE status = 'Concluído'")
     suspend fun buscarCarrosConcluidos() : List<Carro>
+
+    @Query("SELECT * FROM carros WHERE status = 'Editar'")
+    suspend fun carrosEdicao() : List<Carro>
 
 }

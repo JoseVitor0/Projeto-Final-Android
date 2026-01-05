@@ -1,85 +1,78 @@
 🚗 Sistema de Gestão de Veículos e Motores
 
-Aplicação Android desenvolvida para o gerenciamento de veículos e motores, permitindo o cadastro, edição, produção e visualização de carros a partir de um fluxo simples e organizado.
+Este é um aplicativo Android criado para cadastrar e gerenciar veículos e motores de forma simples.
+O sistema permite controlar todo o fluxo, desde o cadastro até a finalização da produção dos carros.
 
-📌 Funcionalidades
+📚 Este projeto foi desenvolvido como trabalho final da disciplina de Desenvolvimento Android.
 
-🔐 Autenticação de usuário (Login)
+✨ O que o sistema faz
 
-⚙️ Cadastro de motores
-
-🚗 Cadastro de veículos
-
-🏭 Edição e confirmação da produção dos carros
-
-✅ Visualização de veículos concluídos
-
-🔄 Fluxo da Aplicação
-
-Login do usuário
+Login de usuário
 
 Cadastro de motores
 
 Cadastro de carros vinculados aos motores
 
-Processo de produção (edição e finalização)
+Edição e finalização da produção dos veículos
 
-Listagem de veículos concluídos
+Visualização dos carros já concluídos
 
-🧱 Estrutura do Projeto
+🔄 Como funciona o fluxo
 
-O projeto segue uma arquitetura organizada, separando responsabilidades para facilitar manutenção e escalabilidade:
+O usuário faz login
 
-Model → Representação das entidades e regras de negócio
+Cadastra os motores
 
-View → Interfaces e telas da aplicação
+Cadastra os carros
 
-ViewModel → Comunicação entre View e Model
+Confere, edita e finaliza a produção
 
-🗄️ Estrutura do Banco de Dados
-📋 Tabela carros
-Campo	Descrição
-id	Identificador do veículo
-marca	Marca do carro
-modelo	Modelo do carro
-ano	Ano de fabricação
-num_portas	Número de portas
-cor	Cor do veículo
-motor	Motor associado
-status	Status do veículo
-opcionais	Campos adicionais
-⚙️ Tabela motores
-Campo	Descrição
-modelo	Identificador do motor
-marca	Marca do motor
-cilindrada	Cilindrada
-potencia	Potência
-torque	Torque
-combustivel	Tipo de combustível
-status	Status do motor
-👤 Responsável pelo Projeto
+Visualiza os carros concluídos
+
+Tudo segue um fluxo simples e fácil de entender.
+
+
+🧱 Organização do projeto
+
+O projeto é dividido em camadas para manter tudo organizado:
+
+Model → Dados e regras do sistema
+
+View → Telas da aplicação
+
+ViewModel → Liga a interface com a lógica do sistema
+
+
+🗄️ Banco de dados
+
+O sistema utiliza duas tabelas principais:
+
+carros → informações dos veículos
+
+motores → informações dos motores
+
+Cada carro é vinculado a um motor já cadastrado.
+
+
+👤 Responsável pelo projeto
 
 José Vitor Gonçalves
-Responsável por todo o desenvolvimento do sistema, incluindo:
 
-Arquitetura do projeto
+Responsável por todo o desenvolvimento do projeto, incluindo:
 
-Implementação das camadas Model, View e ViewModel
+Estrutura do sistema
 
-Regras de negócio
+Lógica de funcionamento
 
-Integração com banco de dados
+Telas
 
-🛠️ Tecnologias Utilizadas
+Banco de dados
+
+
+🛠️ Tecnologias usadas
 
 Android Studio
 
 Java / Kotlin
 
 Banco de dados relacional
-
-📄 Observações
-
-O usuário deve estar autenticado para acessar as funcionalidades.
-
-O sistema pode ser expandido futuramente com relatórios, histórico de produção e melhorias na interface.
